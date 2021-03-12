@@ -17,4 +17,39 @@
 #' notebook <- system.file("extdata", "dummylab.ipynb", package = "labzenr")
 #' parse_lab(notebook)
 parse_lab <- function(notebook = NULL) {
-}
+    # Extracting the fileextension
+  file_ext <- getExtension(notebook)
+
+  # check whether the file is jupyter notebook or Rmarkdown
+  if (file_ext == "ipynb") {
+  
+  # read jupyternotebook as a json file and parse markdown contents
+  py_parse = jsonlite::read_json(notebook)
+  cells = py_parse$cells
+  source <- character()
+  for (cell in cells) {
+    if (cell$cell_type == "markdown") {
+      cell_content <- unlist(cell$source, use.names = FALSE)
+      cell_content <- paste(cell_content, collapse = '\n')
+      source[length(source) + 1] <- cell_content
+    }
+  }
+  } else if (file_ext == "Rmd") {
+
+    # read Rmarkdown file and parse markdown contents
+    rmd_f <- readLines(notebook)
+    cell_content <- paste(rmd_f, collapse = '\n')
+    splitted <- stringr::str_split(cell_content, "```", simplify = TRUE)
+    code_bool <- startsWith(splitted, "{python") | startsWith(splitted, "{r")
+    source <- splitted[!code_bool]
+  }
+  return(source)
+  }
+  
+
+  # helper function for extracting the file extension
+  getExtension <- function(file){
+    ex <- strsplit(basename(file), split="\\.")[[1]]
+    return(ex[-1])
+  }
+
